@@ -1,0 +1,4 @@
+env/
+telegram.txt
+secrets.py
+__pycache__/
