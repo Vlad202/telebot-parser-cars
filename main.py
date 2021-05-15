@@ -37,7 +37,7 @@ def first_parser():
 	global thumb_identify
 	html = requests.get(URL).text
 	soup = BeautifulSoup(html, 'html')
-	post = soup.find_all("div", {"class": "auctionitem"})[-1]
+	post = soup.find_all("div", {"class": "auctionitem"})[-2]
 	identify_url = post.find('a', {'class': 'thumbnail'}).attrs['href']
 	# if not thumb_identify:
 	# 	thumb_identify = identify_url
@@ -50,12 +50,38 @@ def first_parser():
 		# build text message
 		table_rows = post_details_soup.find_all('tr')
 		header = post.find('h3').find('a').text.strip()
-		mileage = f"Пробег (км / мил):   {table_rows[10].find_all('td')[-1].text.strip()}"
-		engine = f"Двигатель:   {table_rows[11].find_all('td')[-1].text.strip()}, объём {table_rows[12].find_all('td')[-1].text.strip()}"
-		transmission = f"Коробка:   {table_rows[8].find_all('td')[-1].text.strip()}"
-		registration = f"Дата первой регистрации:   {table_rows[5].find_all('td')[-1].text.strip()}"
-		auction_date = f"Дата аукциона:   {post_details_soup.find('div', {'id': 'auction_bid'}).find('div', {'class': 'top'}).find_all('dd')[-1].text.strip()}"
-		text = f"{header}\n\n{mileage}\n{engine}\n{transmission}\n{registration}\n{auction_date}"
+		auction_info = post_details_soup.find('div', {'id': 'auction_info'})
+		auction_pre_info = ''
+		try:
+			auction_pre_info += auction_info.find('h3').text.strip() + '\n'
+		except:
+			pass
+		try:
+			auction_pre_info += auction_info.find_all('p')[0].text.strip() + '\n'
+		except:
+			pass
+		try:
+			auction_pre_info += auction_info.find_all('p')[1].text.strip() + '\n'
+		except:
+			pass
+		text = f'''
+		{auction_pre_info}
+		Framleiðandi  - {table_rows[0].find_all('td')[-1].text.strip()}
+		Skráð tjónaökutæki - {table_rows[1].find_all('td')[-1].text.strip()}
+		Nýskráður  - {table_rows[2].find_all('td')[-1].text.strip()}
+		Árgerð - {table_rows[3].find_all('td')[-1].text.strip()}
+		Framleiðsluár - {table_rows[4].find_all('td')[-1].text.strip()}
+		Fyrsti skráningard. - {table_rows[5].find_all('td')[-1].text.strip()}
+		Fastanúmer - {table_rows[6].find_all('td')[-1].text.strip()}
+		Litur - {table_rows[7].find_all('td')[-1].text.strip()}
+		Gírar - {table_rows[8].find_all('td')[-1].text.strip()}
+		Dyr - {table_rows[9].find_all('td')[-1].text.strip()}
+		Akstur (km/mílur) - {table_rows[10].find_all('td')[-1].text.strip()}
+		Vélargerð (eldsneyti) - {table_rows[11].find_all('td')[-1].text.strip()}
+		Vélastærð (slagrými) - {table_rows[12].find_all('td')[-1].text.strip()}
+		Seljandi - {table_rows[13].find_all('td')[-1].text.strip()}
+		'''
+
 		images_url = post_details_soup.find_all('a', {'class': 'thumbnail'})
 		files_name = 'bilauppbod ' + header
 		os.mkdir(files_name)
@@ -77,7 +103,7 @@ def first_parser():
 		os.remove(files_name+'.zip')
 		shutil.rmtree(f'{files_name}/')
 
-def second_parser(soup):
+def second_parser(soup, name):
 	td_href = soup.find('a', {'id': 'pageTemplate__ctl3_rptrAuctions__ctl1_auctionLink'}).attrs['href']
 	details_soup = BeautifulSoup(requests.get('http://utbod.vis.is/'+td_href).text, 'html')
 	table = details_soup.find('table', {'id': 'carTable'})
@@ -93,6 +119,7 @@ def second_parser(soup):
 			astand = tree.xpath('//*[@id="MainPage__ctl3_ItemDetails1_CarInfo1_Damaged"]/font/text()')[0]
 		car_name = tree.xpath('//*[@id="MainPage__ctl3_nameofItem"]/text()')[0]
 		car_text = f'''\n
+		{name}\n
 		{car_name}
 		Útboðsnr.: {tree.xpath('//*[@id="MainPage__ctl3_ItemDetails1_CarInfo1_number"]/text()')[0]}
 		Nýskráður: {tree.xpath('//*[@id="MainPage__ctl3_ItemDetails1_CarInfo1_RegDate"]/text()')[0]}
@@ -132,7 +159,7 @@ def second_parser(soup):
 					pass
 			os.remove(car_name+'.zip')
 		
-def third_parser(req_third):
+def third_parser(req_third, date_web):
 	third_soup = BeautifulSoup(req_third.text, 'html')
 	positions = third_soup.find_all('td', {'class': 'th'})
 	for position in positions:
@@ -147,8 +174,8 @@ def third_parser(req_third):
 		for group in post_groups[:7]:
 			equipment += f'\n{group.find("h3").text.strip()}\n{group.find("h3").next_sibling}\n'
 		car_name = post_req.xpath('//*[@id="vehicle_details"]/h1/text()')[0]
-		
-		car_text = f'{car_name}\n\n'
+		is_worked = post_req.xpath('//*[@id="vehicle_details"]/div[3]/div/ul/li[4]/text()')[0]
+		car_text = f'{car_name}\n\n{is_worked}\n\nДата аукциона - {date_web}\n\n'
 		car_trs = post_soup.find_all('tr', {'class': 'row'})
 		for tr in car_trs:
 			try:
@@ -242,7 +269,7 @@ def parser_thread():
 			if name != old_name:
 				old_name = name
 				print('checkout ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
-				second_parser(soup)
+				second_parser(soup, name)
 		except Exception:
 			print(e)
 
@@ -254,7 +281,7 @@ def parser_thread():
 			date_old = date_web
 			try:
 				print('checkout ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
-				third_parser(req_third)
+				third_parser(req_third, date_web)
 			except Exception as e:
 				print(e)
 		# fourth
