@@ -25,12 +25,22 @@ def example_command(message):
 		ids = ids_list
 	if str(geted_id) not in ids:
 		ids.append(str(geted_id))
+		print(message)
 		with open('telegram.txt', 'a') as f:
 			f.write(f'{str(geted_id)},')
 	msg = '''
 		Здравствуйте!\nТеперь вам будут присылаться новые объявления с сайта bilauppbod.is
 	'''
 	app.send_message(geted_id, msg)
+
+def send_zip(zip_name):
+	with open('telegram.txt', 'r') as f:
+		ids_list = f.read().split(',')
+		for chat_id in ids_list:
+			try:
+				app.send_document(chat_id, open(zip_name+'.zip','rb'))
+			except:
+				pass	
 
 def first_parser():
 	URL = 'https://www.bilauppbod.is'
@@ -65,6 +75,7 @@ def first_parser():
 		except:
 			pass
 		text = f'''
+		{post_url}
 		{auction_pre_info}
 		Framleiðandi  - {table_rows[0].find_all('td')[-1].text.strip()}
 		Skráð tjónaökutæki - {table_rows[1].find_all('td')[-1].text.strip()}
@@ -92,14 +103,7 @@ def first_parser():
 		with open(f'./{files_name}/'+files_name+'.txt', 'w') as f:
 			f.write(text)
 		shutil.make_archive(files_name, 'zip', files_name)
-		with open('telegram.txt', 'r') as f:
-			ids_list = f.read().split(',')
-			for chat_id in ids_list:
-				try:
-					app.send_document(chat_id, open(files_name+'.zip','rb'))
-					# print(chat_id)
-				except:
-					pass	
+		send_zip(files_name)	
 		os.remove(files_name+'.zip')
 		shutil.rmtree(f'{files_name}/')
 
@@ -111,7 +115,8 @@ def second_parser(soup, name):
 	# time_now = str(datetime.datetime.today().strftime('%Y-%m-%d'))
 	for tr in tr_list[1:]:
 		tr_url = tr.find_all('td')[0].find('a').attrs['href']
-		table_details = requests.get('http://utbod.vis.is'+tr_url[2:])
+		post_url = 'http://utbod.vis.is'+tr_url[2:]
+		table_details = requests.get(post_url)
 		tree = html.fromstring(table_details.content)
 		try:
 			astand = tree.xpath('//*[@id="MainPage__ctl3_ItemDetails1_CarInfo1_Damaged"]/text()')[0]
@@ -119,6 +124,7 @@ def second_parser(soup, name):
 			astand = tree.xpath('//*[@id="MainPage__ctl3_ItemDetails1_CarInfo1_Damaged"]/font/text()')[0]
 		car_name = tree.xpath('//*[@id="MainPage__ctl3_nameofItem"]/text()')[0]
 		car_text = f'''\n
+		{post_url}\n
 		{name}\n
 		{car_name}
 		Útboðsnr.: {tree.xpath('//*[@id="MainPage__ctl3_ItemDetails1_CarInfo1_number"]/text()')[0]}
@@ -151,12 +157,7 @@ def second_parser(soup, name):
 					f.write(car_text)
 			shutil.make_archive(car_name, 'zip', car_name)
 			shutil.rmtree(f'{car_name}/')
-			for chat_id in ids_list:
-				try:
-					app.send_document(chat_id, open(car_name+'.zip','rb'))
-					# print(f'{car_name} - {chat_id}')
-				except:
-					pass
+			send_zip(car_name)
 			os.remove(car_name+'.zip')
 		
 def third_parser(req_third, date_web):
@@ -184,7 +185,7 @@ def third_parser(req_third, date_web):
 			except:
 				pass
 		car_text += equipment
-		params_text = '\n'
+		params_text = f"\n{'https://www.avariilised-autod.ee'+post_url+'&l=ru'}\n"
 		technical_params = post_soup.find_all('div', {'class': 'box box2'})[1]
 		for i in technical_params.find_all('td'):
 			params_text += i.text.strip() + '\n'
@@ -201,24 +202,19 @@ def third_parser(req_third, date_web):
 				f.write(image)
 		shutil.make_archive(car_name, 'zip', car_name)
 		shutil.rmtree(f'{car_name}/')
-		with open('telegram.txt', 'r') as f:
-			ids_list = f.read().split(',')
-			for chat_id in ids_list:
-				try:
-					app.send_document(chat_id, open(car_name+'.zip','rb'))
-				except:
-					pass
+		send_zip(car_name)
 		os.remove(car_name+'.zip')
 
 def fourth_parser(soup):
 	last_post_url = soup.find_all('div', {'class': 'oksjonid-list-item'})[-1].find('a', {'class': 'oksjonid-list-link'}).attrs['href']
-	req_post = requests.get('https://romu.ee'+last_post_url)
+	post_url = 'https://romu.ee'+last_post_url
+	req_post = requests.get(post_url)
 	req_xpath = html.fromstring(req_post.content)
 	post_soup = BeautifulSoup(req_post.text, 'html')
 	page_soup = BeautifulSoup(req_post.content, 'html')
 	trs = page_soup.find('div', {'class': 'component'}).find_all('div', {'class': 'row'})[1].find('div', {'class': 'col-xs-8'}).find('div', {'class': 'col-xs-7'}).find_all('tr')
 	car_name = 'romu - ' + req_xpath.xpath('/html/body/div/div/div[2]/div/div[3]/div[1]/div/h1/text()')[0]
-	text = f"{car_name}\nТекущая ставка - {req_xpath.xpath('/html/body/div/div/div[2]/div/div[3]/div[2]/div[2]/div[1]/div[2]/div/h1/text()')[0]}\n"
+	text = f"{post_url}\n\n{car_name}\nТекущая ставка - {req_xpath.xpath('/html/body/div/div/div[2]/div/div[3]/div[2]/div[2]/div[1]/div[2]/div/h1/text()')[0]}\n"
 	for tr in trs:
 		text += f"\n{tr.find('th').text.strip()}\n{tr.find('td').text.strip()}\n"
 	os.mkdir(car_name)
@@ -231,13 +227,30 @@ def fourth_parser(soup):
 			f.write(img)
 	shutil.make_archive(car_name, 'zip', car_name)
 	shutil.rmtree(f'{car_name}/')
-	with open('telegram.txt', 'r') as f:
-		ids_list = f.read().split(',')
-		for chat_id in ids_list:
-			try:
-				app.send_document(chat_id, open(car_name+'.zip','rb'))
-			except:
-				pass
+	send_zip(car_name)
+	os.remove(car_name+'.zip')
+
+def fivth_parser(post_url):
+	response_post = requests.get(post_url)
+	post_soup = BeautifulSoup(response_post.text, 'html')
+	table_items = post_soup.find_all('li', {'class': 'offer-params__item'})
+	car_name = post_soup.find('span', {'class': 'offer-title'}).text.strip()
+	text = f"{post_url}\n\n{car_name}\n{post_soup.find('span', {'class': 'offer-price__number'}).text.strip()}\n\n\n"
+	car_name = 'otomoto - '+car_name
+	os.mkdir(car_name)
+	for li in table_items:
+		text += f"{li.find('span').text.strip()} - {li.find('div').text.strip()}\n\n"
+	with open(f'./{car_name}/'+car_name+'.txt', 'w') as f:
+		f.write(text)
+	slick_slides = post_soup.find_all('li', {'class': 'offer-photos-thumbs__item'})
+	for slide in range(len(slick_slides)):
+		url = slick_slides[slide].find('img').attrs['src'].split(';s=')[0]
+		image = requests.get(url).content
+		with open(f'./{car_name}/'+str(slide)+'.jpg', 'wb') as f:
+			f.write(image)
+	shutil.make_archive(car_name, 'zip', car_name)
+	shutil.rmtree(f'{car_name}/')
+	send_zip(car_name)
 	os.remove(car_name+'.zip')
 
 def bot_thread():
@@ -249,6 +262,7 @@ def parser_thread():
 	old_name = ''
 	date_old = ''
 	old_post_name = ''
+	old_fivth = ''
 	while True:
 		# first
 		try:
@@ -294,8 +308,16 @@ def parser_thread():
 				print('checkout ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
 				fourth_parser(page_soup)	
 			except Exception as e:
-				print(e)	
-		time.sleep(30)
+				print(e)
+		# fivth
+		response_fivth = requests.get('https://www.otomoto.pl/osobowe/?search%5Bfilter_enum_damaged%5D=1&search%5Border%5D=created_at%3Adesc&search%5Bbrand_program_id%5D%5B0%5D=&search%5Bcountry%5D=')
+		fivth_soup = BeautifulSoup(response_fivth.text, 'html')
+		first_car_fivth = fivth_soup.find_all('a', {'class': 'offer-title__link'})[0]
+		first_car_fivth_text = first_car_fivth.text.strip()
+		if first_car_fivth_text != old_fivth:
+			fivth_parser(first_car_fivth.attrs['href'])
+			old_fivth = first_car_fivth_text
+		time.sleep(60)
 
 if __name__ == '__main__':
 	thr_bot = threading.Thread(target=bot_thread)
