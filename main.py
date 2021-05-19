@@ -19,18 +19,38 @@ app = TeleBot(TELEGRAM_TOKEN)
 
 @app.message_handler(commands=['start'])
 def example_command(message):
-	geted_id = message.from_user.id
+	geted_id = message.chat.id
 	with open('telegram.txt', 'r', encoding='utf-8') as f:
 		ids_list = f.read().split(',')
 		ids = ids_list
 	if str(geted_id) not in ids:
 		ids.append(str(geted_id))
-		print(message)
+		# print(message)
 		with open('telegram.txt', 'a') as f:
 			f.write(f'{str(geted_id)},')
 	msg = '''
-		Здравствуйте!\nТеперь вам будут присылаться новые объявления с сайта bilauppbod.is
+	Здравствуйте!\nТеперь вам будут присылаться новые объявления из сайтов:
+	\nbilauppbod.is\nutbod.vis.is\navariilised-autod.ee\nromu.ee\notomoto.pl\n
+	Чтоб отказатья от подписки, введите /stop
 	'''
+	app.send_message(geted_id, msg)
+
+@app.message_handler(commands=['stop'])
+def example_command(message):
+	geted_id = message.chat.id
+	with open('telegram.txt', 'r', encoding='utf-8') as f:
+		ids_list = f.read().split(',')
+	msg = '''
+		ID пользователя не найдено, кажется что Вы ещё не подписаны на рассылку.Подписаться - /start
+	'''
+	if str(geted_id) in ids_list:
+		ids_list.remove(str(geted_id))
+		updated_ids_list = ','.join(str(x) for x in ids_list)
+		with open('telegram.txt', 'w') as f:
+			f.write(updated_ids_list)
+		msg = '''
+			Вам больше не будут рприходить сообщения от меня.\nЧто бы получать уведомления снова, введите команду /start
+		'''
 	app.send_message(geted_id, msg)
 
 def send_zip(zip_name):
@@ -266,7 +286,7 @@ def parser_thread():
 	while True:
 		# first
 		try:
-			print('checkout ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+			print('checkout ------- billupload ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
 			first_parser()
 		except Exception as e: 
 			print(e)
@@ -275,14 +295,15 @@ def parser_thread():
 		req = requests.get('http://utbod.vis.is/default.aspx').text
 		soup = BeautifulSoup(req, 'html')
 		name = ''
+		utbot_msg = 'checkout ------- utbod ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 		try:
 			name = soup.find('span', {'id': 'pageTemplate__ctl3_rptrAuctions__ctl1_auctionTitle'}).text.strip()
-		except Exception as e:
-			print(e)
+		except AttributeError as e:
+			print(utbot_msg)
 		try:
 			if name != old_name:
 				old_name = name
-				print('checkout ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+				print(utbot_msg)
 				second_parser(soup, name)
 		except Exception:
 			print(e)
@@ -294,7 +315,7 @@ def parser_thread():
 		if date_old != date_web:
 			date_old = date_web
 			try:
-				print('checkout ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+				print('checkout ------- avariilised ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
 				third_parser(req_third, date_web)
 			except Exception as e:
 				print(e)
@@ -305,17 +326,24 @@ def parser_thread():
 		if old_post_name != post_name:
 			old_post_name = post_name
 			try:
-				print('checkout ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+				print('checkout ------- romu ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
 				fourth_parser(page_soup)	
 			except Exception as e:
 				print(e)
 		# fivth
-		response_fivth = requests.get('https://www.otomoto.pl/osobowe/?search%5Bfilter_enum_damaged%5D=1&search%5Border%5D=created_at%3Adesc&search%5Bbrand_program_id%5D%5B0%5D=&search%5Bcountry%5D=')
+		try:
+			response_fivth = requests.get('https://www.otomoto.pl/osobowe/?search%5Bfilter_enum_damaged%5D=1&search%5Border%5D=created_at%3Adesc&search%5Bbrand_program_id%5D%5B0%5D=&search%5Bcountry%5D=')
+		except Exception as e:
+			print(e)
 		fivth_soup = BeautifulSoup(response_fivth.text, 'html')
 		first_car_fivth = fivth_soup.find_all('a', {'class': 'offer-title__link'})[0]
 		first_car_fivth_text = first_car_fivth.text.strip()
 		if first_car_fivth_text != old_fivth:
-			fivth_parser(first_car_fivth.attrs['href'])
+			try:
+				print('checkout ------- otomoto ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+				fivth_parser(first_car_fivth.attrs['href'])
+			except Exception as e:
+				print(e)
 			old_fivth = first_car_fivth_text
 		time.sleep(60)
 
