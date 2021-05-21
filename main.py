@@ -292,7 +292,12 @@ def parser_thread():
 			print(e)
 
 		# second
-		req = requests.get('http://utbod.vis.is/default.aspx').text
+		try:
+			req = requests.get('http://utbod.vis.is/default.aspx').text
+		except Exception:
+			print(e)
+			print('Exception in second parser')
+			continue
 		soup = BeautifulSoup(req, 'html')
 		name = ''
 		utbot_msg = 'checkout ------- utbod ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")
@@ -305,11 +310,16 @@ def parser_thread():
 				old_name = name
 				print(utbot_msg)
 				second_parser(soup, name)
-		except Exception:
+		except Exception as e:
 			print(e)
 
 		# third
-		req_third = requests.get('https://www.avariilised-autod.ee/auctions/')
+		try:
+			req_third = requests.get('https://www.avariilised-autod.ee/auctions/')
+		except Exception:
+			print(e)
+			print('Exception in third parser')
+			continue
 		tree = html.fromstring(req_third.content)
 		date_web = tree.xpath('//*[@id="vehicle_search"]/div/div[1]/div/div/text()')[0].split(' ')[0]
 		if date_old != date_web:
@@ -320,7 +330,12 @@ def parser_thread():
 			except Exception as e:
 				print(e)
 		# fourth
-		req_page = requests.get('https://romu.ee/ru/car-auctions?start=100000000000')
+		try:
+			req_page = requests.get('https://romu.ee/ru/car-auctions?start=100000000000')
+		except Exception:
+			print(e)
+			print('Exception in fourth parser')
+			continue
 		page_soup = BeautifulSoup(req_page.text, 'html')
 		post_name = page_soup.find('h2', {'class': 'okjsonid-list-details-title'}).text.strip()
 		if old_post_name != post_name:
@@ -335,6 +350,8 @@ def parser_thread():
 			response_fivth = requests.get('https://www.otomoto.pl/osobowe/?search%5Bfilter_enum_damaged%5D=1&search%5Border%5D=created_at%3Adesc&search%5Bbrand_program_id%5D%5B0%5D=&search%5Bcountry%5D=')
 		except Exception as e:
 			print(e)
+			print('Exception in fivth parser')
+			continue
 		fivth_soup = BeautifulSoup(response_fivth.text, 'html')
 		first_car_fivth = fivth_soup.find_all('a', {'class': 'offer-title__link'})[0]
 		first_car_fivth_text = first_car_fivth.text.strip()
@@ -345,7 +362,7 @@ def parser_thread():
 			except Exception as e:
 				print(e)
 			old_fivth = first_car_fivth_text
-		time.sleep(60)
+		time.sleep(300)
 
 if __name__ == '__main__':
 	thr_bot = threading.Thread(target=bot_thread)
