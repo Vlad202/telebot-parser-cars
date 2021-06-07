@@ -65,7 +65,10 @@ def send_zip(zip_name):
 def first_parser():
 	URL = 'https://www.bilauppbod.is'
 	global thumb_identify
-	html = requests.get(URL).text
+	try:
+		html = requests.get(URL).text
+	except:
+		return 0
 	soup = BeautifulSoup(html, 'html')
 	post = soup.find_all("div", {"class": "auctionitem"})[-2]
 	identify_url = post.find('a', {'class': 'thumbnail'}).attrs['href']
@@ -74,7 +77,10 @@ def first_parser():
 	if thumb_identify != identify_url:
 		thumb_identify = identify_url
 		post_url = URL + post.find('h3').find('a').attrs['href']
-		post_details = requests.get(post_url).text
+		try:
+			post_details = requests.get(post_url).text
+		except:
+			return 0
 		post_details_soup = BeautifulSoup(post_details, 'html')
 		# post_details_url = post_details_soup.find('div', {'id': 'auction_images'}).find_all('a')[0].attrs['href']
 		# build text message
@@ -117,9 +123,12 @@ def first_parser():
 		files_name = 'bilauppbod ' + header
 		os.mkdir(files_name)
 		for url in range(len(images_url)):
-			image = requests.get(URL + images_url[url].find('img').attrs['src'].split('_thumb')[0]+'.jpg').content
-			with open(f'./{files_name}/'+str(url)+'.jpg', 'wb') as f:
-				f.write(image)
+			try:
+				image = requests.get(URL + images_url[url].find('img').attrs['src'].split('_thumb')[0]+'.jpg').content
+				with open(f'./{files_name}/'+str(url)+'.jpg', 'wb') as f:
+					f.write(image)
+			except:
+				pass
 		with open(f'./{files_name}/'+files_name+'.txt', 'w') as f:
 			f.write(text)
 		shutil.make_archive(files_name, 'zip', files_name)
@@ -129,14 +138,20 @@ def first_parser():
 
 def second_parser(soup, name):
 	td_href = soup.find('a', {'id': 'pageTemplate__ctl3_rptrAuctions__ctl1_auctionLink'}).attrs['href']
-	details_soup = BeautifulSoup(requests.get('http://utbod.vis.is/'+td_href).text, 'html')
+	try:
+		details_soup = BeautifulSoup(requests.get('http://utbod.vis.is/'+td_href).text, 'html')
+	except:
+		return 0
 	table = details_soup.find('table', {'id': 'carTable'})
 	tr_list = table.find_all('tr')
 	# time_now = str(datetime.datetime.today().strftime('%Y-%m-%d'))
 	for tr in tr_list[1:]:
 		tr_url = tr.find_all('td')[0].find('a').attrs['href']
 		post_url = 'http://utbod.vis.is'+tr_url[2:]
-		table_details = requests.get(post_url)
+		try:
+			table_details = requests.get(post_url)
+		except:
+			continue
 		tree = html.fromstring(table_details.content)
 		try:
 			astand = tree.xpath('//*[@id="MainPage__ctl3_ItemDetails1_CarInfo1_Damaged"]/text()')[0]
@@ -170,9 +185,12 @@ def second_parser(soup, name):
 			os.mkdir(car_name)
 			for img_path in range(len(images_list)):
 				images_list[img_path] = images_list[img_path].replace('thumb', 'large')
-				img = requests.get('http://utbod.vis.is'+images_list[img_path]).content
-				with open(f'{car_name}/{car_name}-{img_path}.png', 'wb') as f:
-					f.write(img)
+				try:
+					img = requests.get('http://utbod.vis.is'+images_list[img_path]).content
+					with open(f'{car_name}/{car_name}-{img_path}.png', 'wb') as f:
+						f.write(img)
+				except:
+					pass
 				with open(f'{car_name}/{car_name}.txt', 'w') as f:
 					f.write(car_text)
 			shutil.make_archive(car_name, 'zip', car_name)
@@ -185,7 +203,10 @@ def third_parser(req_third, date_web):
 	positions = third_soup.find_all('td', {'class': 'th'})
 	for position in positions:
 		post_url = position.find('a').attrs['href']
-		post_request_info = requests.get('https://www.avariilised-autod.ee'+post_url+'&l=ru')
+		try:
+			post_request_info = requests.get('https://www.avariilised-autod.ee'+post_url+'&l=ru')
+		except:
+			continue
 		post_soup = BeautifulSoup(post_request_info.text, 'html')
 		post_req = html.fromstring(post_request_info.content)
 		post_groups = post_soup.find_all('div', {'class': 'group'})
@@ -217,9 +238,12 @@ def third_parser(req_third, date_web):
 		pictures_a = post_soup.find_all('a', {'class': 'picture'})
 		for a in range(len(pictures_a)):
 			pic_url = pictures_a[a].find('img').attrs['src'].split('?')[0]
-			image = requests.get('https://www.avariilised-autod.ee/vehicles/'+pic_url).content
-			with open(f'./{car_name}/'+str(a)+'.jpg', 'wb') as f:
-				f.write(image)
+			try:
+				image = requests.get('https://www.avariilised-autod.ee/vehicles/'+pic_url).content
+				with open(f'./{car_name}/'+str(a)+'.jpg', 'wb') as f:
+					f.write(image)
+			except:
+				pass
 		shutil.make_archive(car_name, 'zip', car_name)
 		shutil.rmtree(f'{car_name}/')
 		send_zip(car_name)
@@ -228,7 +252,10 @@ def third_parser(req_third, date_web):
 def fourth_parser(soup):
 	last_post_url = soup.find_all('div', {'class': 'oksjonid-list-item'})[-1].find('a', {'class': 'oksjonid-list-link'}).attrs['href']
 	post_url = 'https://romu.ee'+last_post_url
-	req_post = requests.get(post_url)
+	try:
+		req_post = requests.get(post_url)
+	except:
+		return 0
 	req_xpath = html.fromstring(req_post.content)
 	post_soup = BeautifulSoup(req_post.text, 'html')
 	page_soup = BeautifulSoup(req_post.content, 'html')
@@ -242,9 +269,12 @@ def fourth_parser(soup):
 		f.write(text)
 	images = post_soup.find_all('div', {'class': 'oksjonid-image'})
 	for image in range(len(images)):
-		img = requests.get(images[image].find('img').attrs['src'].replace('/thumbs', '')).content
-		with open(f'./{car_name}/'+str(image)+'.jpg', 'wb') as f:
-			f.write(img)
+		try:
+			img = requests.get(images[image].find('img').attrs['src'].replace('/thumbs', '')).content
+			with open(f'./{car_name}/'+str(image)+'.jpg', 'wb') as f:
+				f.write(img)
+		except:
+			pass
 	shutil.make_archive(car_name, 'zip', car_name)
 	shutil.rmtree(f'{car_name}/')
 	send_zip(car_name)
@@ -266,11 +296,42 @@ def parser_thread():
 			first_parser()
 		except Exception as e: 
 			print(e)
-
+		# third
+		try:
+			req_third = requests.get('https://www.avariilised-autod.ee/auctions/')
+		except Exception as e:
+			print(e)
+			print('Exception in third parser')
+			continue
+		tree = html.fromstring(req_third.content)
+		date_web = tree.xpath('//*[@id="vehicle_search"]/div/div[1]/div/div/text()')[0].split(' ')[0]
+		if date_old != date_web:
+			date_old = date_web
+			try:
+				print('checkout ------- avariilised ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+				third_parser(req_third, date_web)
+			except Exception as e:
+				print(e)
+		# fourth
+		try:
+			req_page = requests.get('https://romu.ee/ru/car-auctions?start=100000000000')
+		except Exception as e:
+			print(e)
+			print('Exception in fourth parser')
+			continue
+		page_soup = BeautifulSoup(req_page.text, 'html')
+		post_name = page_soup.find('h2', {'class': 'okjsonid-list-details-title'}).text.strip()
+		if old_post_name != post_name:
+			old_post_name = post_name
+			try:
+				print('checkout ------- romu ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+				fourth_parser(page_soup)	
+			except Exception as e:
+				print(e)
 		# second
 		try:
 			req = requests.get('http://utbod.vis.is/default.aspx').text
-		except Exception:
+		except Exception as e:
 			print(e)
 			print('Exception in second parser')
 			continue
@@ -289,38 +350,6 @@ def parser_thread():
 		except Exception as e:
 			print(e)
 
-		# third
-		try:
-			req_third = requests.get('https://www.avariilised-autod.ee/auctions/')
-		except Exception:
-			print(e)
-			print('Exception in third parser')
-			continue
-		tree = html.fromstring(req_third.content)
-		date_web = tree.xpath('//*[@id="vehicle_search"]/div/div[1]/div/div/text()')[0].split(' ')[0]
-		if date_old != date_web:
-			date_old = date_web
-			try:
-				print('checkout ------- avariilised ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
-				third_parser(req_third, date_web)
-			except Exception as e:
-				print(e)
-		# fourth
-		try:
-			req_page = requests.get('https://romu.ee/ru/car-auctions?start=100000000000')
-		except Exception:
-			print(e)
-			print('Exception in fourth parser')
-			continue
-		page_soup = BeautifulSoup(req_page.text, 'html')
-		post_name = page_soup.find('h2', {'class': 'okjsonid-list-details-title'}).text.strip()
-		if old_post_name != post_name:
-			old_post_name = post_name
-			try:
-				print('checkout ------- romu ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
-				fourth_parser(page_soup)	
-			except Exception as e:
-				print(e)
 		time.sleep(300)
 
 if __name__ == '__main__':
