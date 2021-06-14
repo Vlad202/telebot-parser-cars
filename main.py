@@ -64,18 +64,28 @@ def send_zip(zip_name):
 
 def first_parser():
 	URL = 'https://www.bilauppbod.is'
-	global thumb_identify
+	# global thumb_identify
 	try:
 		html = requests.get(URL).text
 	except:
 		return 0
 	soup = BeautifulSoup(html, 'html')
-	post = soup.find_all("div", {"class": "auctionitem"})[-2]
-	identify_url = post.find('a', {'class': 'thumbnail'}).attrs['href']
-	# if not thumb_identify:
-	# 	thumb_identify = identify_url
-	if thumb_identify != identify_url:
-		thumb_identify = identify_url
+	posts_list = []
+	posts = list(reversed(soup.find_all("div", {"class": "auctionitem"})))
+	with open('billupload_identifier.txt', 'r') as f:
+		thumb_identify = f.read()
+	for post in range(len(posts)):
+		identify_url = posts[post].find('a', {'class': 'thumbnail'}).attrs['href']
+		if identify_url != thumb_identify:
+			posts_list = posts[post:]
+			# thumb_identify = identify_url
+			with open('billupload_identifier.txt', 'w') as f:
+				f.write(identify_url)
+			break
+	# identify_url = post.find('a', {'class': 'thumbnail'}).attrs['href']
+	# if thumb_identify != identify_url:
+	for post in posts_list:
+		# thumb_identify = identify_url
 		post_url = URL + post.find('h3').find('a').attrs['href']
 		try:
 			post_details = requests.get(post_url).text
@@ -101,22 +111,22 @@ def first_parser():
 		except:
 			pass
 		text = f'''
-		{post_url}
-		{auction_pre_info}
-		Framleiðandi  - {table_rows[0].find_all('td')[-1].text.strip()}
-		Skráð tjónaökutæki - {table_rows[1].find_all('td')[-1].text.strip()}
-		Nýskráður  - {table_rows[2].find_all('td')[-1].text.strip()}
-		Árgerð - {table_rows[3].find_all('td')[-1].text.strip()}
-		Framleiðsluár - {table_rows[4].find_all('td')[-1].text.strip()}
-		Fyrsti skráningard. - {table_rows[5].find_all('td')[-1].text.strip()}
-		Fastanúmer - {table_rows[6].find_all('td')[-1].text.strip()}
-		Litur - {table_rows[7].find_all('td')[-1].text.strip()}
-		Gírar - {table_rows[8].find_all('td')[-1].text.strip()}
-		Dyr - {table_rows[9].find_all('td')[-1].text.strip()}
-		Akstur (km/mílur) - {table_rows[10].find_all('td')[-1].text.strip()}
-		Vélargerð (eldsneyti) - {table_rows[11].find_all('td')[-1].text.strip()}
-		Vélastærð (slagrými) - {table_rows[12].find_all('td')[-1].text.strip()}
-		Seljandi - {table_rows[13].find_all('td')[-1].text.strip()}
+{post_url}
+{auction_pre_info}
+Framleiðandi  - {table_rows[0].find_all('td')[-1].text.strip()}
+Skráð tjónaökutæki - {table_rows[1].find_all('td')[-1].text.strip()}
+Nýskráður  - {table_rows[2].find_all('td')[-1].text.strip()}
+Árgerð - {table_rows[3].find_all('td')[-1].text.strip()}
+Framleiðsluár - {table_rows[4].find_all('td')[-1].text.strip()}
+Fyrsti skráningard. - {table_rows[5].find_all('td')[-1].text.strip()}
+Fastanúmer - {table_rows[6].find_all('td')[-1].text.strip()}
+Litur - {table_rows[7].find_all('td')[-1].text.strip()}
+Gírar - {table_rows[8].find_all('td')[-1].text.strip()}
+Dyr - {table_rows[9].find_all('td')[-1].text.strip()}
+Akstur (km/mílur) - {table_rows[10].find_all('td')[-1].text.strip()}
+Vélargerð (eldsneyti) - {table_rows[11].find_all('td')[-1].text.strip()}
+Vélastærð (slagrými) - {table_rows[12].find_all('td')[-1].text.strip()}
+Seljandi - {table_rows[13].find_all('td')[-1].text.strip()}
 		'''
 
 		images_url = post_details_soup.find_all('a', {'class': 'thumbnail'})
@@ -296,61 +306,61 @@ def parser_thread():
 			first_parser()
 		except Exception as e: 
 			print(e)
-		# third
-		try:
-			req_third = requests.get('https://www.avariilised-autod.ee/auctions/')
-		except Exception as e:
-			print(e)
-			print('Exception in third parser')
-			continue
-		tree = html.fromstring(req_third.content)
-		date_web = tree.xpath('//*[@id="vehicle_search"]/div/div[1]/div/div/text()')[0].split(' ')[0]
-		if date_old != date_web:
-			date_old = date_web
-			try:
-				print('checkout ------- avariilised ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
-				third_parser(req_third, date_web)
-			except Exception as e:
-				print(e)
-		# fourth
-		try:
-			req_page = requests.get('https://romu.ee/ru/car-auctions?start=100000000000')
-		except Exception as e:
-			print(e)
-			print('Exception in fourth parser')
-			continue
-		page_soup = BeautifulSoup(req_page.text, 'html')
-		post_name = page_soup.find('h2', {'class': 'okjsonid-list-details-title'}).text.strip()
-		if old_post_name != post_name:
-			old_post_name = post_name
-			try:
-				print('checkout ------- romu ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
-				fourth_parser(page_soup)	
-			except Exception as e:
-				print(e)
-		# second
-		try:
-			req = requests.get('http://utbod.vis.is/default.aspx').text
-		except Exception as e:
-			print(e)
-			print('Exception in second parser')
-			continue
-		soup = BeautifulSoup(req, 'html')
-		name = ''
-		utbot_msg = 'checkout ------- utbod ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-		try:
-			name = soup.find('span', {'id': 'pageTemplate__ctl3_rptrAuctions__ctl1_auctionTitle'}).text.strip()
-		except AttributeError as e:
-			print(utbot_msg)
-		try:
-			if name != old_name:
-				old_name = name
-				print(utbot_msg)
-				second_parser(soup, name)
-		except Exception as e:
-			print(e)
+		# # third
+		# try:
+		# 	req_third = requests.get('https://www.avariilised-autod.ee/auctions/')
+		# except Exception as e:
+		# 	print(e)
+		# 	print('Exception in third parser')
+		# 	continue
+		# tree = html.fromstring(req_third.content)
+		# date_web = tree.xpath('//*[@id="vehicle_search"]/div/div[1]/div/div/text()')[0].split(' ')[0]
+		# if date_old != date_web:
+		# 	date_old = date_web
+		# 	try:
+		# 		print('checkout ------- avariilised ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+		# 		third_parser(req_third, date_web)
+		# 	except Exception as e:
+		# 		print(e)
+		# # fourth
+		# try:
+		# 	req_page = requests.get('https://romu.ee/ru/car-auctions?start=100000000000')
+		# except Exception as e:
+		# 	print(e)
+		# 	print('Exception in fourth parser')
+		# 	continue
+		# page_soup = BeautifulSoup(req_page.text, 'html')
+		# post_name = page_soup.find('h2', {'class': 'okjsonid-list-details-title'}).text.strip()
+		# if old_post_name != post_name:
+		# 	old_post_name = post_name
+		# 	try:
+		# 		print('checkout ------- romu ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+		# 		fourth_parser(page_soup)	
+		# 	except Exception as e:
+		# 		print(e)
+		# # second
+		# try:
+		# 	req = requests.get('http://utbod.vis.is/default.aspx').text
+		# except Exception as e:
+		# 	print(e)
+		# 	print('Exception in second parser')
+		# 	continue
+		# soup = BeautifulSoup(req, 'html')
+		# name = ''
+		# utbot_msg = 'checkout ------- utbod ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+		# try:
+		# 	name = soup.find('span', {'id': 'pageTemplate__ctl3_rptrAuctions__ctl1_auctionTitle'}).text.strip()
+		# except AttributeError as e:
+		# 	print(utbot_msg)
+		# try:
+		# 	if name != old_name:
+		# 		old_name = name
+		# 		print(utbot_msg)
+		# 		second_parser(soup, name)
+		# except Exception as e:
+		# 	print(e)
 
-		time.sleep(300)
+		time.sleep(30)
 
 if __name__ == '__main__':
 	thr_bot = threading.Thread(target=bot_thread)
