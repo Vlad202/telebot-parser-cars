@@ -71,17 +71,24 @@ def first_parser():
 		return 0
 	soup = BeautifulSoup(html, 'html')
 	posts_list = []
-	posts = list(reversed(soup.find_all("div", {"class": "auctionitem"})))
+	posts = soup.find_all("div", {"class": "auctionitem"})
 	with open('billupload_identifier.txt', 'r') as f:
 		thumb_identify = f.read()
+	flag = True
 	for post in range(len(posts)):
 		identify_url = posts[post].find('a', {'class': 'thumbnail'}).attrs['href']
-		if identify_url != thumb_identify:
-			posts_list = posts[post:]
+		if identify_url == thumb_identify:
+			flag = False
+			try:
+				posts_list = posts[post+1:]
+			except:
+				posts_list
 			# thumb_identify = identify_url
 			with open('billupload_identifier.txt', 'w') as f:
 				f.write(identify_url)
 			break
+	if flag:
+		posts_list = posts[-1]
 	# identify_url = post.find('a', {'class': 'thumbnail'}).attrs['href']
 	# if thumb_identify != identify_url:
 	for post in posts_list:
@@ -306,59 +313,59 @@ def parser_thread():
 			first_parser()
 		except Exception as e: 
 			print(e)
-		# # third
-		# try:
-		# 	req_third = requests.get('https://www.avariilised-autod.ee/auctions/')
-		# except Exception as e:
-		# 	print(e)
-		# 	print('Exception in third parser')
-		# 	continue
-		# tree = html.fromstring(req_third.content)
-		# date_web = tree.xpath('//*[@id="vehicle_search"]/div/div[1]/div/div/text()')[0].split(' ')[0]
-		# if date_old != date_web:
-		# 	date_old = date_web
-		# 	try:
-		# 		print('checkout ------- avariilised ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
-		# 		third_parser(req_third, date_web)
-		# 	except Exception as e:
-		# 		print(e)
-		# # fourth
-		# try:
-		# 	req_page = requests.get('https://romu.ee/ru/car-auctions?start=100000000000')
-		# except Exception as e:
-		# 	print(e)
-		# 	print('Exception in fourth parser')
-		# 	continue
-		# page_soup = BeautifulSoup(req_page.text, 'html')
-		# post_name = page_soup.find('h2', {'class': 'okjsonid-list-details-title'}).text.strip()
-		# if old_post_name != post_name:
-		# 	old_post_name = post_name
-		# 	try:
-		# 		print('checkout ------- romu ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
-		# 		fourth_parser(page_soup)	
-		# 	except Exception as e:
-		# 		print(e)
-		# # second
-		# try:
-		# 	req = requests.get('http://utbod.vis.is/default.aspx').text
-		# except Exception as e:
-		# 	print(e)
-		# 	print('Exception in second parser')
-		# 	continue
-		# soup = BeautifulSoup(req, 'html')
-		# name = ''
-		# utbot_msg = 'checkout ------- utbod ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-		# try:
-		# 	name = soup.find('span', {'id': 'pageTemplate__ctl3_rptrAuctions__ctl1_auctionTitle'}).text.strip()
-		# except AttributeError as e:
-		# 	print(utbot_msg)
-		# try:
-		# 	if name != old_name:
-		# 		old_name = name
-		# 		print(utbot_msg)
-		# 		second_parser(soup, name)
-		# except Exception as e:
-		# 	print(e)
+		# third
+		try:
+			req_third = requests.get('https://www.avariilised-autod.ee/auctions/')
+		except Exception as e:
+			print(e)
+			print('Exception in third parser')
+			continue
+		tree = html.fromstring(req_third.content)
+		date_web = tree.xpath('//*[@id="vehicle_search"]/div/div[1]/div/div/text()')[0].split(' ')[0]
+		if date_old != date_web:
+			date_old = date_web
+			try:
+				print('checkout ------- avariilised ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+				third_parser(req_third, date_web)
+			except Exception as e:
+				print(e)
+		# fourth
+		try:
+			req_page = requests.get('https://romu.ee/ru/car-auctions?start=100000000000')
+		except Exception as e:
+			print(e)
+			print('Exception in fourth parser')
+			continue
+		page_soup = BeautifulSoup(req_page.text, 'html')
+		post_name = page_soup.find('h2', {'class': 'okjsonid-list-details-title'}).text.strip()
+		if old_post_name != post_name:
+			old_post_name = post_name
+			try:
+				print('checkout ------- romu ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S"))
+				fourth_parser(page_soup)	
+			except Exception as e:
+				print(e)
+		# second
+		try:
+			req = requests.get('http://utbod.vis.is/default.aspx').text
+		except Exception as e:
+			print(e)
+			print('Exception in second parser')
+			continue
+		soup = BeautifulSoup(req, 'html')
+		name = ''
+		utbot_msg = 'checkout ------- utbod ------- ' + datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+		try:
+			name = soup.find('span', {'id': 'pageTemplate__ctl3_rptrAuctions__ctl1_auctionTitle'}).text.strip()
+		except AttributeError as e:
+			print(utbot_msg)
+		try:
+			if name != old_name:
+				old_name = name
+				print(utbot_msg)
+				second_parser(soup, name)
+		except Exception as e:
+			print(e)
 
 		time.sleep(30)
 
